@@ -11,6 +11,11 @@ import {
   resetPersonaExtensionsState,
 } from "./prompt-injection.js";
 import { createExtensionsContainer, renderExtensionsUI } from "./ui.js";
+import {
+  loadSettings,
+  isExtensionEnabled,
+  initSettingsUI,
+} from "./settings.js";
 
 let lastAvatarId = user_avatar;
 
@@ -19,6 +24,9 @@ let lastAvatarId = user_avatar;
  */
 function init() {
   console.log("[User Persona Extended]: Extension initialized");
+
+  // Load settings first
+  loadSettings();
 
   // Initialize handlers for persona restoration after generation
   initPersonaExtensionsHook();
@@ -76,7 +84,9 @@ function init() {
 
   // Inject extensions before generation
   eventSource.on(event_types.GENERATION_STARTED, async () => {
-    injectPersonaExtensions(user_avatar);
+    if (isExtensionEnabled()) {
+      injectPersonaExtensions(user_avatar);
+    }
   });
 }
 
@@ -87,6 +97,11 @@ try {
   } else {
     setTimeout(init, 100);
   }
+
+  // Initialize settings UI when extensions are ready
+  eventSource.on(event_types.EXTENSION_SETTINGS_LOADED, () => {
+    setTimeout(initSettingsUI, 200);
+  });
 } catch (error) {
   console.error("[User Persona Extended]: Initialization error:", error);
 }
