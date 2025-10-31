@@ -1,0 +1,28 @@
+/* Persona Extensions Styles */
+/* Используем стандартные классы SillyTavern, добавляем только минимальные специфичные стили */
+
+#persona_extensions_container {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--SmartThemeBorderColor);
+}
+
+#persona_extensions_container h4 {
+  margin: 0;
+}
+
+/* Стили для заголовка каждого блока описания */
+.persona_extension_title_text {
+  flex: 1;
+}
+
+/* Минимальные дополнительные стили для элементов внутри inline-drawer */
+.persona_extensions_fields .inline-drawer {
+  margin-bottom: 10px;
+}
+
+ 
+
+.persona_extensions_fields label {
+  display: block;
+}
