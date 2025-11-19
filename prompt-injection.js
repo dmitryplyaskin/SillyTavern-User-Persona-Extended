@@ -7,9 +7,12 @@ import { eventSource, event_types } from "/script.js";
 import { power_user } from "/scripts/power-user.js";
 import { getPersonaExtensions } from "./data.js";
 
-let currentUserAvatar = null;
-let originalPersonaDescription = null;
-let isRestoringPersona = false;
+let isInjectionActive = false;
+let injectionTimeout = null;
+let isHijacked = false;
+
+// Internal storage for the actual description
+let _internalDescription = "";
 
 /**
  * Gets extension text for specified persona
@@ -51,74 +54,93 @@ function getExtensionText(userAvatar) {
 }
 
 /**
- * Gets original persona description for specified avatar
- * @param {string} userAvatar Current persona ID
- * @returns {string} Original persona description
+ * Hijacks the persona_description property on power_user object
+ * This allows us to dynamically inject extensions when read,
+ * while keeping the underlying value clean for saving.
  */
-function getOriginalPersonaDescription(userAvatar) {
-    if (!userAvatar || !power_user.persona_descriptions) {
-        return power_user.persona_description || "";
-    }
+function hijackPersonaDescription() {
+    if (isHijacked) return;
 
-    const descriptor = power_user.persona_descriptions[userAvatar];
-    if (descriptor && descriptor.description) {
-        return descriptor.description;
-    }
+    // Initialize internal storage with current value
+    _internalDescription = power_user.persona_description || "";
 
-    return power_user.persona_description || "";
+    try {
+        Object.defineProperty(power_user, 'persona_description', {
+            get: function() {
+                // If injection is active, return description + extensions
+                if (isInjectionActive) {
+                    // We need the current avatar ID to get relevant extensions
+                    // We can import it dynamically or rely on the one passed to injectPersonaExtensions
+                    // But injectPersonaExtensions sets the flag, so we should have the text ready?
+                    // Better: injectPersonaExtensions prepares the text.
+                    
+                    // Actually, simpler: injectPersonaExtensions sets a temporary "override" string
+                    // But we want to be robust.
+                    
+                    // Let's stick to the plan: 
+                    // The getter calculates the text if active.
+                    // But we need the avatar ID. 
+                    // Let's store the current extension text in a module-level variable when injection starts.
+                    return _internalDescription + (currentExtensionText ? ("\n" + currentExtensionText) : "");
+                }
+                return _internalDescription;
+            },
+            set: function(value) {
+                _internalDescription = value;
+            },
+            configurable: true,
+            enumerable: true
+        });
+        
+        isHijacked = true;
+        console.log("[User Persona Extended]: Persona description hijacked successfully");
+    } catch (e) {
+        console.error("[User Persona Extended]: Failed to hijack persona description", e);
+    }
 }
+
+let currentExtensionText = "";
 
 /**
  * Resets saved state when persona changes
  * @param {string} userAvatar New persona ID
  */
 export function resetPersonaExtensionsState(userAvatar) {
-    // If persona changed, reset saved state
-    if (currentUserAvatar !== userAvatar) {
-        originalPersonaDescription = null;
-        currentUserAvatar = userAvatar;
-    }
+    // Not strictly needed for this approach, but good for cleanup
+    isInjectionActive = false;
+    currentExtensionText = "";
 }
 
 /**
  * Injects persona extensions into prompt
- * Temporarily modifies power_user.persona_description before generation
+ * Activates the smart getter for a short duration
  * @param {string} userAvatar Current persona ID
  */
 export function injectPersonaExtensions(userAvatar) {
-    // Reset state when persona changes
-    resetPersonaExtensionsState(userAvatar);
-
-    // Save original persona description for current avatar
-    if (!isRestoringPersona && originalPersonaDescription === null) {
-        originalPersonaDescription = getOriginalPersonaDescription(userAvatar);
-    }
-
-    // Get extension text
-    const extensionText = getExtensionText(userAvatar);
-
-    if (extensionText && !isRestoringPersona) {
-        // Temporarily modify persona_description, adding extensions
-        const basePersona = originalPersonaDescription || "";
-        const separator =
-            basePersona.trim() && !basePersona.trim().endsWith("\n")
-                ? "\n"
-                : "";
-        power_user.persona_description =
-            basePersona + separator + extensionText;
+    // Prepare extension text
+    const text = getExtensionText(userAvatar);
+    
+    if (text) {
+        currentExtensionText = text;
+        isInjectionActive = true;
+        
+        // Auto-disable injection after a short timeout to be safe
+        // The prompt construction usually happens immediately after this event
+        if (injectionTimeout) clearTimeout(injectionTimeout);
+        injectionTimeout = setTimeout(() => {
+            isInjectionActive = false;
+            currentExtensionText = "";
+        }, 1000); // 1 second should be plenty for prompt construction
     }
 }
 
 /**
- * Restores original persona description after generation
+ * Restores original persona description state after generation
  */
-function restoreOriginalPersona() {
-    if (originalPersonaDescription !== null && !isRestoringPersona) {
-        isRestoringPersona = true;
-        power_user.persona_description = originalPersonaDescription;
-        originalPersonaDescription = null;
-        isRestoringPersona = false;
-    }
+function disableInjection() {
+    isInjectionActive = false;
+    currentExtensionText = "";
+    if (injectionTimeout) clearTimeout(injectionTimeout);
 }
 
 /**
@@ -126,7 +148,15 @@ function restoreOriginalPersona() {
  * Should be called once when extension loads
  */
 export function initPersonaExtensionsHook() {
-    // Restore original description after generation
-    eventSource.on(event_types.GENERATION_ENDED, restoreOriginalPersona);
-    eventSource.on(event_types.GENERATION_STOPPED, restoreOriginalPersona);
+    // Hijack the property
+    hijackPersonaDescription();
+
+    // Disable injection after generation
+    eventSource.on(event_types.GENERATION_ENDED, disableInjection);
+    eventSource.on(event_types.GENERATION_STOPPED, disableInjection);
+}
+
+// Export for compatibility/cleanup if needed, though not used internally anymore
+export function cleanupPersonaDescription() {
+    // No-op in this version as we don't dirty the value
 }

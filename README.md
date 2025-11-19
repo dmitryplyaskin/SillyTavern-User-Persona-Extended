@@ -143,6 +143,12 @@ Dmitry Plyaskin
 
 For issues, feature requests, or contributions, please visit the [GitHub repository](https://github.com/dmitryplyaskin/SillyTavern-User-Persona-Extended).
 
+## Changelog
+
+### 0.0.2
+
+- **Fix**: Changed prompt injection method to use a "Smart Getter". This prevents the extension text from being permanently saved to the persona description in settings, fixing a corruption bug.
+
 ---
 
 <a id="russian"></a>
@@ -280,3 +286,9 @@ Dmitry Plyaskin
 ## Поддержка
 
 По вопросам, запросам функций или вкладу в проект посетите [репозиторий GitHub](https://github.com/dmitryplyaskin/SillyTavern-User-Persona-Extended).
+
+## История изменений
+
+### 0.0.2
+
+- **Исправление**: Изменен метод инъекции промпта на использование "Умного геттера". Это предотвращает постоянное сохранение текста расширения в описание персоны в настройках, исправляя баг с повреждением данных.
