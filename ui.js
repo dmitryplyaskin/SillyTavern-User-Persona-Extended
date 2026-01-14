@@ -39,13 +39,13 @@ function createExtensionFieldTemplate(
             <div class="inline-drawer-header" style="cursor: default;">
                 <div class="flex-container alignitemscenter margin0" style="width: 100%; padding-right: 25px;">
                     <b class="persona_extension_title_text" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px;">${title}</b>
-                    
+
                     <div class="flex-container alignitemscenter margin0" style="flex-shrink: 0; gap: 10px;">
                         <label class="checkbox_label margin0" style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
                             <input type="checkbox" class="persona_extension_field_enabled" data-extension-id="${id}" ${enabled ? "checked" : ""}>
                             <span>Enabled</span>
                         </label>
-                        
+
                         <div class="flex-container margin0" style="gap: 5px;">
                             <button type="button" class="menu_button margin0 persona_extension_move_up" data-extension-id="${id}" title="Move Up" ${upDisabled}>
                                 <i class="fa-solid fa-arrow-up"></i>
@@ -138,16 +138,16 @@ export function renderExtensionsUI(force = false) {
 
 /**
  * Moves an extension up or down in the list
- * @param {string} extensionId 
- * @param {boolean} moveUp 
+ * @param {string} extensionId
+ * @param {boolean} moveUp
  * @param {boolean} teleport
  */
 function moveExtension(extensionId, moveUp, teleport = false) {
     const extensions = getPersonaExtensions(user_avatar);
     const index = extensions.findIndex(ext => ext.id === extensionId);
-    
+
     if (index === -1) return;
-    
+
     if (teleport) {
         const [item] = extensions.splice(index, 1);
         if (moveUp) {
@@ -164,7 +164,7 @@ function moveExtension(extensionId, moveUp, teleport = false) {
         // Swap elements
         [extensions[index], extensions[targetIndex]] = [extensions[targetIndex], extensions[index]];
     }
-    
+
     savePersonaExtensions(user_avatar, extensions);
     renderExtensionsUI(true); // Force re-render to reflect new order
 }
@@ -287,14 +287,14 @@ function initEventHandlers() {
   $(document).on("click", ".persona_extension_move_up, .persona_extension_move_down", function (e) {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const $button = $(this);
     const extensionId = $button.data("extension-id");
     const isUp = $button.hasClass("persona_extension_move_up");
-    
+
     // Detect if Ctrl, Shift, or Command (Mac) is held
     const isTeleport = e.ctrlKey || e.shiftKey || e.metaKey;
-    
+
     if (extensionId) {
         moveExtension(extensionId, isUp, isTeleport);
     }
