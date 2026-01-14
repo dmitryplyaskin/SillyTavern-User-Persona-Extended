@@ -18,18 +18,21 @@ function generateExtensionId() {
  * Creates HTML template for extension field
  * @param {Object} extensionData Extension data {id, title, description, enabled}
  * @param {number} index Field index (for display purposes)
+ * @param {number} total Total number of extensions
  * @returns {string} HTML string
  */
 function createExtensionFieldTemplate(
   extensionData = { id: "", title: "", description: "", enabled: true },
-  index = 0
+  index = 0,
+  total = 0
 ) {
-  const id =
-    extensionData.id ||
-    `ext_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const id = extensionData.id || generateExtensionId();
   const title = extensionData.title || `Extension #${index + 1}`;
   const description = extensionData.description || "";
   const enabled = extensionData.enabled !== false;
+
+  const upDisabled = index === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : '';
+  const downDisabled = index === total - 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : '';
 
   return `
         <div class="inline-drawer" data-extension-id="${id}">
@@ -37,14 +40,21 @@ function createExtensionFieldTemplate(
                 <div class="flex-container alignitemscenter margin0">
                     <b class="persona_extension_title_text">${title}</b>
                     <label class="checkbox_label margin0" style="margin-left: 10px; display: flex;">
-                        <input type="checkbox" class="persona_extension_field_enabled" data-extension-id="${id}" ${
-    enabled ? "checked" : ""
-  }>
+                        <input type="checkbox" class="persona_extension_field_enabled" data-extension-id="${id}" ${enabled ? "checked" : ""}>
                         <span>Enabled</span>
                     </label>
-                    <button type="button" class="menu_button margin0 persona_extension_delete" data-extension-id="${id}" style="margin-left: 10px;" title="Delete">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+                    
+                    <div class="flex-container margin0" style="margin-left: auto; gap: 5px;">
+                        <button type="button" class="menu_button margin0 persona_extension_move_up" data-extension-id="${id}" title="Move Up" ${upDisabled}>
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
+                        <button type="button" class="menu_button margin0 persona_extension_move_down" data-extension-id="${id}" title="Move Down" ${downDisabled}>
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </button>
+                        <button type="button" class="menu_button margin0 persona_extension_delete" data-extension-id="${id}" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down persona_extension_toggle" style="cursor: pointer;" data-extension-id="${id}"></div>
             </div>
@@ -60,21 +70,21 @@ function createExtensionFieldTemplate(
 
 /**
  * Renders UI for persona extensions
+ * @param {boolean} force Force re-render even if length is the same
  */
-export function renderExtensionsUI() {
+export function renderExtensionsUI(force = false) {
   const $container = $("#persona_extensions_container");
   if (!$container.length) return;
 
   const $fieldsContainer = $container.find(".persona_extensions_fields");
   if (!$fieldsContainer.length) return;
 
-  // Always get fresh data from storage
   const extensions = getPersonaExtensions(user_avatar);
   const $currentFields = $fieldsContainer.find(".inline-drawer");
 
-  // Re-render only if the number of elements changed
+  // Re-render if length changed OR if forced (e.g., after reordering)
   // Field values are updated directly via input/change events
-  if ($currentFields.length !== extensions.length) {
+  if (force || $currentFields.length !== extensions.length) {
     // Save state of open blocks by ID
     const openStates = {};
     $currentFields.each((idx, field) => {
@@ -98,10 +108,9 @@ export function renderExtensionsUI() {
     } else {
       extensions.forEach((ext, index) => {
         // Ensure extension has an ID
-        if (!ext.id) {
-          ext.id = generateExtensionId();
-        }
-        const html = createExtensionFieldTemplate(ext, index);
+        if (!ext.id) ext.id = generateExtensionId();
+
+        const html = createExtensionFieldTemplate(ext, index, extensions.length);
         const $field = $(html);
         $fieldsContainer.append($field);
 
@@ -118,15 +127,33 @@ export function renderExtensionsUI() {
       // Save extensions if IDs were added
       const needsSave = extensions.some((ext) => !ext.id);
       if (needsSave) {
-        extensions.forEach((ext) => {
-          if (!ext.id) {
-            ext.id = generateExtensionId();
-          }
-        });
         savePersonaExtensions(user_avatar, extensions);
       }
     }
   }
+}
+
+/**
+ * Moves an extension up or down in the list
+ * @param {string} extensionId 
+ * @param {boolean} moveUp 
+ */
+function moveExtension(extensionId, moveUp) {
+  const extensions = getPersonaExtensions(user_avatar);
+  const index = extensions.findIndex(ext => ext.id === extensionId);
+
+  if (index === -1) return;
+
+  const targetIndex = moveUp ? index - 1 : index + 1;
+
+  // Boundary check
+  if (targetIndex < 0 || targetIndex >= extensions.length) return;
+
+  // Swap elements
+  [extensions[index], extensions[targetIndex]] = [extensions[targetIndex], extensions[index]];
+
+  savePersonaExtensions(user_avatar, extensions);
+  renderExtensionsUI(true); // Force re-render to reflect new order
 }
 
 // Flag to track handler initialization
@@ -243,6 +270,19 @@ function initEventHandlers() {
 
   // Handle add button click
   $(document).on("click", ".persona_extension_add", addExtensionField);
+
+  $(document).on("click", ".persona_extension_move_up, .persona_extension_move_down", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const $button = $(this);
+    const extensionId = $button.data("extension-id");
+    const isUp = $button.hasClass("persona_extension_move_up");
+
+    if (extensionId) {
+      moveExtension(extensionId, isUp);
+    }
+  });
 }
 
 /**
