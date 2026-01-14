@@ -37,23 +37,26 @@ function createExtensionFieldTemplate(
   return `
         <div class="inline-drawer" data-extension-id="${id}">
             <div class="inline-drawer-header" style="cursor: default;">
-                <div class="flex-container alignitemscenter margin0">
-                    <b class="persona_extension_title_text">${title}</b>
-                    <label class="checkbox_label margin0" style="margin-left: 10px; display: flex;">
-                        <input type="checkbox" class="persona_extension_field_enabled" data-extension-id="${id}" ${enabled ? "checked" : ""}>
-                        <span>Enabled</span>
-                    </label>
+                <div class="flex-container alignitemscenter margin0" style="width: 100%; padding-right: 25px;">
+                    <b class="persona_extension_title_text" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px;">${title}</b>
                     
-                    <div class="flex-container margin0" style="margin-left: auto; gap: 5px;">
-                        <button type="button" class="menu_button margin0 persona_extension_move_up" data-extension-id="${id}" title="Move Up" ${upDisabled}>
-                            <i class="fa-solid fa-arrow-up"></i>
-                        </button>
-                        <button type="button" class="menu_button margin0 persona_extension_move_down" data-extension-id="${id}" title="Move Down" ${downDisabled}>
-                            <i class="fa-solid fa-arrow-down"></i>
-                        </button>
-                        <button type="button" class="menu_button margin0 persona_extension_delete" data-extension-id="${id}" title="Delete">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                    <div class="flex-container alignitemscenter margin0" style="flex-shrink: 0; gap: 10px;">
+                        <label class="checkbox_label margin0" style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                            <input type="checkbox" class="persona_extension_field_enabled" data-extension-id="${id}" ${enabled ? "checked" : ""}>
+                            <span>Enabled</span>
+                        </label>
+                        
+                        <div class="flex-container margin0" style="gap: 5px;">
+                            <button type="button" class="menu_button margin0 persona_extension_move_up" data-extension-id="${id}" title="Move Up" ${upDisabled}>
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </button>
+                            <button type="button" class="menu_button margin0 persona_extension_move_down" data-extension-id="${id}" title="Move Down" ${downDisabled}>
+                                <i class="fa-solid fa-arrow-down"></i>
+                            </button>
+                            <button type="button" class="menu_button margin0 persona_extension_delete" data-extension-id="${id}" title="Delete">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down persona_extension_toggle" style="cursor: pointer;" data-extension-id="${id}"></div>
