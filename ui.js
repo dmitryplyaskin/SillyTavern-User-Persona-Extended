@@ -140,23 +140,33 @@ export function renderExtensionsUI(force = false) {
  * Moves an extension up or down in the list
  * @param {string} extensionId 
  * @param {boolean} moveUp 
+ * @param {boolean} teleport
  */
-function moveExtension(extensionId, moveUp) {
-  const extensions = getPersonaExtensions(user_avatar);
-  const index = extensions.findIndex(ext => ext.id === extensionId);
+function moveExtension(extensionId, moveUp, teleport = false) {
+    const extensions = getPersonaExtensions(user_avatar);
+    const index = extensions.findIndex(ext => ext.id === extensionId);
+    
+    if (index === -1) return;
+    
+    if (teleport) {
+        const [item] = extensions.splice(index, 1);
+        if (moveUp) {
+            extensions.unshift(item); // Move to start
+        } else {
+            extensions.push(item); // Move to end
+        }
+    } else {
+        const targetIndex = moveUp ? index - 1 : index + 1;
 
-  if (index === -1) return;
+        // Boundary check
+        if (targetIndex < 0 || targetIndex >= extensions.length) return;
 
-  const targetIndex = moveUp ? index - 1 : index + 1;
-
-  // Boundary check
-  if (targetIndex < 0 || targetIndex >= extensions.length) return;
-
-  // Swap elements
-  [extensions[index], extensions[targetIndex]] = [extensions[targetIndex], extensions[index]];
-
-  savePersonaExtensions(user_avatar, extensions);
-  renderExtensionsUI(true); // Force re-render to reflect new order
+        // Swap elements
+        [extensions[index], extensions[targetIndex]] = [extensions[targetIndex], extensions[index]];
+    }
+    
+    savePersonaExtensions(user_avatar, extensions);
+    renderExtensionsUI(true); // Force re-render to reflect new order
 }
 
 // Flag to track handler initialization
@@ -277,13 +287,16 @@ function initEventHandlers() {
   $(document).on("click", ".persona_extension_move_up, .persona_extension_move_down", function (e) {
     e.preventDefault();
     e.stopPropagation();
-
+    
     const $button = $(this);
     const extensionId = $button.data("extension-id");
     const isUp = $button.hasClass("persona_extension_move_up");
-
+    
+    // Detect if Ctrl, Shift, or Command (Mac) is held
+    const isTeleport = e.ctrlKey || e.shiftKey || e.metaKey;
+    
     if (extensionId) {
-      moveExtension(extensionId, isUp);
+        moveExtension(extensionId, isUp, isTeleport);
     }
   });
 }
@@ -363,6 +376,7 @@ export function createExtensionsContainer() {
             </div>
             <div class="persona_extensions_fields"></div>
         </div>
+        <hr>
     `;
 
   const $container = $(containerHtml);
